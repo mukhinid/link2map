@@ -6,6 +6,8 @@
 
     <queries>
         <package android:name="app.organicmaps" />
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="ru.yandex.maps" />
         <package android:name="org.mozilla.firefox" />
     </queries>
 
