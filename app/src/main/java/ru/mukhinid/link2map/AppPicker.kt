@@ -10,19 +10,34 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.launch
 import ru.mukhinid.link2map.ui.theme.Link2MapTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppPickerSheet(apps: List<App>, onDismiss: () -> Unit, onAppSelected: (String) -> Unit) {
-    ModalBottomSheet(onDismiss) {
-        AppPickerList(apps, onAppSelected)
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        AppPickerList(apps, { packageName ->
+            onAppSelected(packageName)
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        })
     }
 }
 

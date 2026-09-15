@@ -4,10 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.core.net.toUri
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -32,10 +33,6 @@ class LinkHandlerActivity : ComponentActivity() {
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     Log.e("LinkHandlerActivity", "Network error", e)
-                    runOnUiThread {
-                        Toast.makeText(this@LinkHandlerActivity, e.message, Toast.LENGTH_SHORT).show()
-                        finish()
-                    }
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -47,9 +44,14 @@ class LinkHandlerActivity : ComponentActivity() {
                                 if (geo != null) {
                                     val mapsIntent = Intent(
                                         Intent.ACTION_VIEW,
-                                        "geo:${geo.long},${geo.lat}?q=${geo.long},${geo.lat}&z=${geo.zoom}".toUri()
+                                        "geo:${geo.lat},${geo.long}?q=${geo.lat},${geo.long}&z=${geo.zoom}".toUri()
                                     )
-                                    mapsIntent.setPackage("app.organicmaps")
+
+                                    val mapPackage = runBlocking {
+                                        dataStore.data.first()[SELECTED_MAP_KEY] ?: ""
+                                    }
+
+                                    mapsIntent.setPackage(mapPackage)
                                     mapsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     startActivity(mapsIntent)
                                 }
