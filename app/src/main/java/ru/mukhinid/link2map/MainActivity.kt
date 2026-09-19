@@ -53,6 +53,7 @@ import ru.mukhinid.link2map.ui.theme.Link2MapTheme
 
 val Context.dataStore by preferencesDataStore(name = "settings")
 val SELECTED_MAP_KEY = stringPreferencesKey("selected_map")
+val SELECTED_BROWSER_KEY = stringPreferencesKey("selected_browser")
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,16 +83,35 @@ private fun MainScreen(
                 App(
                     context.packageManager.getApplicationLabel(info).toString(),
                     pkg,
-                    context.packageManager.getApplicationIcon(info)
+                    context.packageManager.getApplicationIcon(info),
+                )
+            }.getOrNull()
+        }
+    }
+    val installedBrowsers = remember {
+        SUPPORTED_BROWSER_PACKAGES.mapNotNull { pkg ->
+            runCatching {
+                val info = context.packageManager.getApplicationInfo(pkg, 0)
+                App(
+                    name = context.packageManager.getApplicationLabel(info).toString(),
+                    packageName = pkg,
+                    icon = context.packageManager.getApplicationIcon(info),
                 )
             }.getOrNull()
         }
     }
 
     var showPicker by remember { mutableStateOf(false) }
+    var appsForPicker: List<App> by remember { mutableStateOf(listOf()) }
+    var onAppSelected: (String) -> Unit by remember { mutableStateOf({}) }
+
     val selectedMapValue = viewModel.selectedMap.collectAsStateWithLifecycle(initialValue = null).value
     val selectedMap = selectedMapValue?.let {
         installedMapApps.firstOrNull { it.packageName == selectedMapValue }
+    }
+    val selectedBrowserValue = viewModel.selectedBrowser.collectAsStateWithLifecycle(initialValue = null).value
+    val selectedBrowser = selectedBrowserValue?.let {
+        installedBrowsers.firstOrNull { it.packageName == selectedBrowserValue }
     }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -111,7 +131,13 @@ private fun MainScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable(role = Role.Button, onClick = { showPicker = true })
+                    .clickable(
+                        role = Role.Button,
+                        onClick = {
+                            appsForPicker = installedMapApps
+                            onAppSelected = { packageName -> viewModel.updateSelectedMap(packageName) }
+                            showPicker = true },
+                    )
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -129,14 +155,50 @@ private fun MainScreen(
                 )
                 Icon(Icons.Default.ArrowDropDown, null)
             }
+
+            Text(
+                "Selected browser app",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(
+                        role = Role.Button,
+                        onClick = {
+                            appsForPicker = installedBrowsers
+                            onAppSelected = { packageName -> viewModel.updateSelectedBrowser(packageName) }
+                            showPicker = true
+                        },
+                    )
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (selectedBrowser != null) {
+                    Image(
+                        painter = DrawablePainter(selectedBrowser.icon),
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                }
+                Text(
+                    selectedBrowser?.name ?: "Not specified",
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(Icons.Default.ArrowDropDown, null)
+            }
         }
     }
 
     if (showPicker) {
         AppPickerSheet(
-            installedMapApps,
-            { showPicker = false },
-            { packageName -> viewModel.updateSelectedMap(packageName) },
+            apps = appsForPicker,
+            onDismiss = { showPicker = false },
+            onAppSelected = onAppSelected,
         )
     }
 }
@@ -151,9 +213,22 @@ class MainScreenViewModel(
             initialValue = "",
         )
 
+    val selectedBrowser: StateFlow<String> = repository.selectedBrowserFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "",
+        )
+
     fun updateSelectedMap(newValue: String) {
         viewModelScope.launch {
             repository.updateSelectedMap(newValue)
+        }
+    }
+
+    fun updateSelectedBrowser(newValue: String) {
+        viewModelScope.launch {
+            repository.updateSelectedBrowser(newValue)
         }
     }
 
@@ -172,10 +247,17 @@ class PreferencesRepository(
     private val dataStore: DataStore<Preferences>
 ) {
     val selectedMapFlow: Flow<String> = dataStore.data.map { pref -> pref[SELECTED_MAP_KEY] ?: "" }
+    val selectedBrowserFlow: Flow<String> = dataStore.data.map { pref -> pref[SELECTED_BROWSER_KEY] ?: "" }
 
     suspend fun updateSelectedMap(packageName: String) {
         dataStore.updateData {
             it.toMutablePreferences().also { pref -> pref[SELECTED_MAP_KEY] = packageName }
+        }
+    }
+
+    suspend fun updateSelectedBrowser(packageName: String) {
+        dataStore.updateData {
+            it.toMutablePreferences().also { pref -> pref[SELECTED_BROWSER_KEY] = packageName }
         }
     }
 }

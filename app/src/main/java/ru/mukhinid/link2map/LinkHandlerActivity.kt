@@ -42,14 +42,18 @@ class LinkHandlerActivity : ComponentActivity() {
                             if (location != null) {
                                 val geo = getCoordinatesFromUri(location)
                                 if (geo != null) {
+                                    val mapPackage = runBlocking {
+                                        dataStore.data.first()[SELECTED_MAP_KEY] ?: ""
+                                    }
+
+                                    if (mapPackage == "") {
+                                        return
+                                    }
+
                                     val mapsIntent = Intent(
                                         Intent.ACTION_VIEW,
                                         "geo:${geo.lat},${geo.long}?q=${geo.lat},${geo.long}&z=${geo.zoom}".toUri()
                                     )
-
-                                    val mapPackage = runBlocking {
-                                        dataStore.data.first()[SELECTED_MAP_KEY] ?: ""
-                                    }
 
                                     mapsIntent.setPackage(mapPackage)
                                     mapsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -61,8 +65,16 @@ class LinkHandlerActivity : ComponentActivity() {
                 }
             })
         } else {
+            val browserPackage = runBlocking {
+                dataStore.data.first()[SELECTED_BROWSER_KEY] ?: ""
+            }
+
+            if (browserPackage == "") {
+                return
+            }
+
             val browserIntent = Intent(Intent.ACTION_VIEW, data)
-            browserIntent.setPackage("org.mozilla.firefox")
+            browserIntent.setPackage(browserPackage)
             startActivity(browserIntent)
         }
     }

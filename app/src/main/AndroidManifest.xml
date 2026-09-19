@@ -8,7 +8,21 @@
         <package android:name="app.organicmaps" />
         <package android:name="com.google.android.apps.maps" />
         <package android:name="ru.yandex.maps" />
+
         <package android:name="org.mozilla.firefox" />
+        <package android:name="com.android.browser" />
+        <package android:name="com.android.chrome" />
+        <package android:name="com.opera.browser" />
+        <package android:name="com.opera.mini.native" />
+        <package android:name="com.sec.android.app.sbrowser" />
+        <package android:name="com.microsoft.emmx" />
+        <package android:name="com.mi.globalbrowser" />
+        <package android:name="com.yandex.browser" />
+        <package android:name="com.brave.browser" />
+        <package android:name="com.vivaldi.browser" />
+        <package android:name="com.chrome.beta" />
+        <package android:name="com.chrome.dev" />
+        <package android:name="com.chrome.canary" />
     </queries>
 
     <application
